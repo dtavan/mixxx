@@ -493,9 +493,8 @@ mc3000.decksOfSide = function(side) {
 // EFX buttons/knobs use components.EffectUnit (midi-components-0.0.js), matching
 // Mixxx's standard 3-effect-slot model: EFX.1-3 buttons/knobs are the enable
 // toggles and meta knobs for that side's three effect slots, EFX.4 button is the
-// focus button (hold, then press EFX.1-3 to focus one effect so its knob starts
-// controlling that effect's own parameters instead of just its meta knob), and
-// EFX.4 knob is the effect unit's overall dry/wet mix.
+// focus button (press to focus one effect for per-parameter control instead of
+// just its meta knob), and EFX.4 knob is the effect unit's overall dry/wet mix.
 // unitNumbers is a single-element array (not e.g. [1,3]) because deck assignment
 // is already handled by FX ON 1/2 below -- this side's EFX cluster always targets
 // the one EffectRack1_EffectUnit assigned to it, never a second unit to toggle to.
@@ -507,15 +506,6 @@ mc3000.decksOfSide = function(side) {
 // on/off/blink LED protocol instead of the component's generic on/off send().
 // send() is untouched by every mode EffectUnit puts these buttons in (normal,
 // focus-choose, focused), so overriding it once here is enough.
-//
-// Focusing an effect also normally makes its enable button control that effect's
-// button_parameter1/2/3 instead of "enabled" -- but no built-in Mixxx effect
-// defines a button-type parameter, so the button (and its LED) goes dead the
-// moment any effect is focused, with no way to tell the enable buttons and the
-// per-parameter knobs apart. onFocusChange is overridden below so the enable
-// buttons always stay plain "enabled" toggles regardless of focus state; only
-// the knobs (EffectUnitKnob's own onFocusChange, untouched) switch to
-// per-parameter control when focused.
 mc3000.makeEffectUnit = function(side) {
     const eu = new components.EffectUnit([side], false);
     const decks = mc3000.decksOfSide(side);
@@ -530,13 +520,7 @@ mc3000.makeEffectUnit = function(side) {
     };
 
     for (let n=1; n<=3; n++) {
-        const button = eu.enableButtons[n];
-        button.send = broadcastSend(mc3000.leds[`efx${n}${suffix}`]);
-        button.onFocusChange = function() {
-            this.group = `[EffectRack1_EffectUnit${eu.currentUnitNumber}_Effect${this.number}]`;
-            this.inKey = "enabled";
-            this.outKey = "enabled";
-        };
+        eu.enableButtons[n].send = broadcastSend(mc3000.leds[`efx${n}${suffix}`]);
     }
     eu.effectFocusButton.send = broadcastSend(mc3000.leds[`efx4${suffix}`]);
 
